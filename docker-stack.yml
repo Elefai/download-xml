@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  xml-api:
+    image: seu-registro/xml-downloader-api:1.0  # Substitua pela sua imagem
+    ports:
+      - "8000:8000"  # Expor porta para acesso interno
+    networks:
+      - api-network
+    environment:
+      - PYTHONPATH=/app
+    deploy:
+      replicas: 2  # Pode ser facilmente escalado: docker service scale stack_xml-api=5
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        order: start-first
+      # Uncomment to constrain deployment to specific node types
+      # placement:
+      #   constraints:
+      #     - node.role == worker
+      #     - node.labels.environment == production
+
+networks:
+  api-network:
+    driver: overlay
+    attachable: true
