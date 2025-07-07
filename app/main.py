@@ -5,7 +5,7 @@ from app.routers import download
 app = FastAPI(
     title="XML Download API",
     description="API para download e validação de arquivos XML a partir de URLs",
-    version="1.0.0",
+    version="0.0.1",
     docs_url="/docs",
     redoc_url="/redoc"
 )
@@ -27,9 +27,17 @@ async def root():
     return {
         "message": "XML Download API está funcionando!",
         "docs": "/docs",
-        "version": "1.0.0"
+        "version": "0.0.1"
+    }
+
+@app.get("/version")
+async def get_version():
+    return {
+        "version": "0.0.1",
+        "name": "XML Download API",
+        "build": "stable"
     }
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    return {"status": "healthy", "version": "0.0.1"}

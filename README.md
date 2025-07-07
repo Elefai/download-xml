@@ -43,9 +43,12 @@ xml-download-api/
 ├── install.sh              # Instalador automático 🆕
 ├── quick-install.sh         # Instalação via internet 🆕
 ├── demo-install.sh          # Demo de instalação 🆕
+├── release.sh               # Script de release automático 🆕
 ├── test_api.py             # Script de testes
 ├── exemplo-uso-interno.yml  # Exemplo de uso em rede Docker 🆕
 ├── consumer-example.py      # Exemplo de serviço consumidor 🆕
+├── VERSION                  # Controle de versão 🆕
+├── CHANGELOG.md            # Histórico de mudanças 🆕
 ├── EXECUTAR.md             # Instruções detalhadas
 ├── INSTALACAO-AUTOMATICA.md # Guia dos scripts de instalação 🆕
 ├── README_SHOWCASE.md       # Página de vitrine do projeto 🆕
@@ -279,16 +282,16 @@ Primeiro, construa e envie a imagem Docker para seu registro:
 cd xml-downloader-api
 
 # Build da imagem com tag versionada
-docker build -t seu-registro/xml-downloader-api:1.0 .
+docker build -t seu-registro/xml-downloader-api:0.0.1 .
 
 # Fazer login no registro (se necessário)
 docker login seu-registro
 
 # Push da imagem para o registro
-docker push seu-registro/xml-downloader-api:1.0
+docker push seu-registro/xml-downloader-api:0.0.1
 
 # Opcional: criar tag 'latest' para facilitar futuras atualizações
-docker tag seu-registro/xml-downloader-api:1.0 seu-registro/xml-downloader-api:latest
+docker tag seu-registro/xml-downloader-api:0.0.1 seu-registro/xml-downloader-api:latest
 docker push seu-registro/xml-downloader-api:latest
 ```
 
@@ -375,11 +378,11 @@ docker service ps xml-downloader_xml-api
 #### Atualizar a aplicação:
 ```bash
 # Fazer build e push da nova versão
-docker build -t seu-registro/xml-downloader-api:1.1 .
-docker push seu-registro/xml-downloader-api:1.1
+docker build -t seu-registro/xml-downloader-api:0.0.2 .
+docker push seu-registro/xml-downloader-api:0.0.2
 
 # Atualizar o serviço (rolling update automático)
-docker service update --image seu-registro/xml-downloader-api:1.1 xml-downloader_xml-api
+docker service update --image seu-registro/xml-downloader-api:0.0.2 xml-downloader_xml-api
 ```
 
 #### Remover a stack:
@@ -411,7 +414,7 @@ curl http://xml-downloader_xml-api:8000/api/v1/download_xml \
 version: '3.8'
 services:
   xml-api:
-    image: seu-registro/xml-downloader-api:1.0
+    image: seu-registro/xml-downloader-api:0.0.1
     networks:
       - internal-network
   
@@ -430,6 +433,37 @@ networks:
 ```
 
 > 💡 **Exemplo completo disponível:** Consulte [`exemplo-uso-interno.yml`](exemplo-uso-interno.yml) e [`consumer-example.py`](consumer-example.py) para ver implementação prática.
+
+### 🏷️ Releases e Versionamento
+
+O projeto segue [Versionamento Semântico](https://semver.org/) e inclui script automatizado para releases:
+
+#### Fazer um Release:
+
+```bash
+# Para próxima versão patch (0.0.1 → 0.0.2)
+./release.sh 0.0.2
+
+# Para próxima versão minor (0.0.x → 0.1.0)
+./release.sh 0.1.0
+
+# Para próxima versão major (0.x.x → 1.0.0)
+./release.sh 1.0.0
+```
+
+#### O script automaticamente:
+- ✅ Atualiza versão em todos os arquivos
+- ✅ Executa testes de sintaxe
+- ✅ Atualiza CHANGELOG.md
+- ✅ Cria commit e tag Git
+- ✅ Faz build da imagem Docker
+- ✅ Fornece instruções para push
+
+#### Verificar Versão Atual:
+```bash
+cat VERSION                    # Arquivo de versão
+curl http://localhost:8000/version  # Via API
+```
 
 ### 🔧 Configurações Avançadas
 
