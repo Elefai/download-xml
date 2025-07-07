@@ -1,0 +1,105 @@
+version: '3.8'
+
+services:
+  # Sua API XML
+  xml-api:
+    image: seu-registro/xml-downloader-api:0.0.1
+    ports:
+      - "8000:8000"  # Externa:Interna
+    networks:
+      - app-network
+    deploy:
+      replicas: 3  # 3 instâncias - cada uma com porta 8000 interna!
+
+  # Outro serviço que USA a API XML
+  app-frontend:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    networks:
+      - app-network
+    configs:
+      - source: nginx_config
+        target: /etc/nginx/conf.d/default.conf
+    depends_on:
+      - xml-api
+
+  # Serviço que consome a API internamente
+  worker-service:
+    image: python:3.11-slim
+    networks:
+      - app-network
+    command: |
+      sh -c "
+        echo 'Instalando requests...'
+        pip install requests
+        echo 'Testando API interna...'
+        python -c \"
+import requests
+import time
+
+while True:
+    try:
+        # CHAMADA INTERNA - usa o nome do serviço!
+        response = requests.get('http://xml-api:8000/health')
+        print(f'Health check: {response.json()}')
+        
+        # Download XML interno
+        xml_response = requests.get('http://xml-api:8000/download-xml/', params={
+            'url': 'https://httpbin.org/xml'
+        })
+        print(f'XML download status: {xml_response.status_code}')
+        
+        time.sleep(30)
+    except Exception as e:
+        print(f'Erro: {e}')
+        time.sleep(10)
+        \"
+      "
+    depends_on:
+      - xml-api
+
+networks:
+  app-network:
+    driver: overlay
+    attachable: true
+
+configs:
+  nginx_config:
+    external: true
+
+# ============================================================================
+# EXEMPLO DE USO:
+# ============================================================================
+#
+# 1. Deploy do stack:
+#    docker stack deploy -c exemplo-uso-interno-detalhado.yml meu-app
+#
+# 2. Verificar serviços:
+#    docker service ls
+#
+# 3. Ver logs do worker (chamadas internas):
+#    docker service logs meu-app_worker-service
+#
+# 4. Escalar a API:
+#    docker service scale meu-app_xml-api=5
+#
+# 5. Testar externamente:
+#    curl http://localhost:8000/health
+#
+# 6. As chamadas internas usam:
+#    http://xml-api:8000/  (nome do serviço)
+#
+# ============================================================================
+# REDE INTERNA:
+# ============================================================================
+#
+# Container 1: xml-api_1 -> porta interna 8000
+# Container 2: xml-api_2 -> porta interna 8000  
+# Container 3: xml-api_3 -> porta interna 8000
+#
+# ✅ TODAS na mesma porta interna - Docker resolve automaticamente!
+# ✅ Load balancing automático entre as 3 instâncias
+# ✅ Service discovery pelo nome 'xml-api'
+#
+# ============================================================================
