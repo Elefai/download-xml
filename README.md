@@ -40,15 +40,37 @@ xml-download-api/
 ├── docker-compose.yml       # Execução local/desenvolvimento
 ├── docker-stack.yml         # Deploy em produção (Docker Swarm)
 ├── requirements.txt         # Dependências Python
+├── install.sh              # Instalador automático 🆕
+├── quick-install.sh         # Instalação via internet 🆕
+├── demo-install.sh          # Demo de instalação 🆕
 ├── test_api.py             # Script de testes
 ├── traefik-setup.md        # Configuração do Traefik
 ├── EXECUTAR.md             # Instruções detalhadas
+├── INSTALACAO-AUTOMATICA.md # Guia dos scripts de instalação 🆕
+├── README_SHOWCASE.md       # Página de vitrine do projeto 🆕
 └── README.md               # Documentação principal
 ```
 
 ## 🔧 Instalação e Execução
 
-### Opção 1: Usando Docker (Recomendado)
+### 🚀 **Opção 1: Instalação Automática (Um Comando)**
+
+**Para containers Linux (Ubuntu, Debian, CentOS, Alpine, etc.):**
+
+```bash
+# Instalação automática via internet (recomendado)
+curl -sSL https://raw.githubusercontent.com/seu-usuario/xml-download-api/main/quick-install.sh | bash
+
+# OU clone o repositório e execute localmente
+git clone https://github.com/seu-usuario/xml-download-api.git
+cd xml-download-api
+chmod +x install.sh && ./install.sh
+```
+
+> 🎉 **Pronto!** O script instala tudo automaticamente: Python, dependências, ambiente virtual e scripts de controle.  
+> Depois da instalação: `cd xml-download-api && ./start.sh`
+
+### 🐳 **Opção 2: Usando Docker (Recomendado para desenvolvimento)**
 
 1. **Clone o repositório:**
    ```bash
@@ -69,7 +91,7 @@ xml-download-api/
    - Produção: http://localhost:8000
    - Desenvolvimento: http://localhost:8001
 
-### Opção 2: Execução Local
+### 🐍 **Opção 3: Execução Manual (Python)**
 
 1. **Instale as dependências:**
    ```bash
@@ -80,6 +102,8 @@ xml-download-api/
    ```bash
    uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
    ```
+
+ > 💡 **Instruções detalhadas:** [`EXECUTAR.md`](EXECUTAR.md) | **Instalação automática:** [`INSTALACAO-AUTOMATICA.md`](INSTALACAO-AUTOMATICA.md)
 
 ## 📖 Documentação da API
 

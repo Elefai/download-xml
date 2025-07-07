@@ -67,7 +67,19 @@
 
 ## 🎯 **Quick Start**
 
-### 💻 **Opção 1: Docker (Recomendado)**
+### ⚡ **Opção 1: Instalação Automática (1 comando!)**
+
+```bash
+# Instala TUDO automaticamente em qualquer container Linux
+curl -sSL https://raw.githubusercontent.com/seu-usuario/xml-download-api/main/quick-install.sh | bash
+
+# Depois execute
+cd xml-download-api && ./start.sh
+```
+
+🎉 **Pronto!** Funciona em Ubuntu, Debian, CentOS, Alpine, etc. Zero configuração!
+
+### 💻 **Opção 2: Docker (Tradicional)**
 
 ```bash
 # Clone e execute em 2 comandos
@@ -75,9 +87,7 @@ git clone https://github.com/seu-usuario/xml-download-api.git
 cd xml-download-api && docker-compose up -d
 ```
 
-🎉 **Pronto!** Sua API estará rodando em: http://localhost:8000/docs
-
-### 🐍 **Opção 2: Python Local**
+### 🐍 **Opção 3: Python Manual**
 
 ```bash
 # Setup rápido com Python
@@ -85,6 +95,8 @@ python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
+
+**📍 Sua API estará rodando em: http://localhost:8000/docs**
 
 ---
 
