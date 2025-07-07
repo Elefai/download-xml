@@ -1,0 +1,87 @@
+version: '3.8'
+
+# Exemplo de uso da XML Download API em rede interna Docker
+# Este arquivo demonstra como integrar a API com outros serviços
+
+services:
+  # Serviço XML Download API
+  xml-api:
+    image: seu-registro/xml-downloader-api:1.0
+    container_name: xml-download-api
+    environment:
+      - PYTHONPATH=/app
+    networks:
+      - internal-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    # Não expor porta publicamente - apenas para rede interna
+    expose:
+      - "8000"
+    restart: unless-stopped
+
+  # Exemplo de serviço que consome a XML API
+  consumer-app:
+    image: python:3.11-slim
+    container_name: xml-consumer
+    environment:
+      - XML_API_URL=http://xml-api:8000
+    networks:
+      - internal-network
+    depends_on:
+      xml-api:
+        condition: service_healthy
+    volumes:
+      - ./consumer-example.py:/app/consumer.py
+    working_dir: /app
+    command: python consumer.py
+    restart: unless-stopped
+
+  # Exemplo de nginx como proxy interno (opcional)
+  internal-proxy:
+    image: nginx:alpine
+    container_name: internal-proxy
+    ports:
+      - "8080:80"  # Expor apenas o proxy, não a API diretamente
+    networks:
+      - internal-network
+    volumes:
+      - ./nginx-internal.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - xml-api
+    restart: unless-stopped
+
+  # Exemplo de aplicação web que usa a API
+  web-app:
+    image: node:18-alpine
+    container_name: web-app
+    environment:
+      - XML_API_ENDPOINT=http://xml-api:8000/api/v1/download_xml
+      - NODE_ENV=production
+    networks:
+      - internal-network
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./web-app:/app
+    working_dir: /app
+    command: npm start
+    depends_on:
+      xml-api:
+        condition: service_healthy
+    restart: unless-stopped
+
+networks:
+  internal-network:
+    driver: bridge
+    internal: false  # Permitir acesso à internet para downloads
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# Volumes para persistência (se necessário)
+volumes:
+  xml-cache:
+    driver: local

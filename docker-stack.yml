@@ -3,12 +3,14 @@ version: '3.8'
 services:
   xml-api:
     image: seu-registro/xml-downloader-api:1.0  # Substitua pela sua imagem
+    ports:
+      - "8000:8000"  # Expor porta para acesso interno
     networks:
-      - traefik-public
+      - api-network
     environment:
       - PYTHONPATH=/app
     deploy:
-      replicas: 1  # Pode ser facilmente escalado: docker service scale stack_xml-api=3
+      replicas: 2  # Pode ser facilmente escalado: docker service scale stack_xml-api=5
       resources:
         limits:
           cpus: '0.5'
@@ -31,34 +33,8 @@ services:
       #   constraints:
       #     - node.role == worker
       #     - node.labels.environment == production
-      labels:
-        # Habilitar Traefik para este serviço
-        - traefik.enable=true
-        - traefik.docker.network=traefik-public
-        
-        # Configuração do Router HTTP (redirecionamento para HTTPS)
-        - traefik.http.routers.xml-api.rule=Host(`api-xml.seu-dominio.com`)
-        - traefik.http.routers.xml-api.entrypoints=web
-        - traefik.http.routers.xml-api.middlewares=xml-api-redirect
-        
-        # Middleware para redirecionamento HTTPS
-        - traefik.http.middlewares.xml-api-redirect.redirectscheme.scheme=https
-        - traefik.http.middlewares.xml-api-redirect.redirectscheme.permanent=true
-        
-        # Configuração do Router HTTPS (principal)
-        - traefik.http.routers.xml-api-secure.rule=Host(`api-xml.seu-dominio.com`)
-        - traefik.http.routers.xml-api-secure.entrypoints=websecure
-        - traefik.http.routers.xml-api-secure.tls=true
-        - traefik.http.routers.xml-api-secure.tls.certresolver=letsencryptresolver
-        
-        # Configuração do Service (porta interna da aplicação)
-        - traefik.http.services.xml-api.loadbalancer.server.port=8000
-        
-        # Health check personalizado (opcional)
-        - traefik.http.services.xml-api.loadbalancer.healthcheck.path=/health
-        - traefik.http.services.xml-api.loadbalancer.healthcheck.interval=30s
-        - traefik.http.services.xml-api.loadbalancer.healthcheck.timeout=10s
 
 networks:
-  traefik-public:
-    external: true
+  api-network:
+    driver: overlay
+    attachable: true

@@ -55,8 +55,8 @@
 
 ### 🐳 **Deploy Sem Complicações**
 - **Totalmente containerizada** com Docker
-- Deploy em produção com Docker Swarm + Traefik
-- SSL/TLS automático com Let's Encrypt
+- Deploy em produção com Docker Swarm
+- Ideal para uso interno em redes Docker
 - Escalabilidade com um comando
 
 </td>
@@ -187,10 +187,10 @@ if response.status_code == 200:
 
 ## 🚀 **Deploy em Produção**
 
-### 🏢 **Para Empresas - Docker Swarm + Traefik**
+### 🏢 **Para Uso Interno - Docker Swarm**
 
 ```bash
-# Deploy profissional com SSL automático
+# Deploy profissional para rede interna
 docker stack deploy -c docker-stack.yml xml-downloader
 
 # Escale instantaneamente
@@ -198,13 +198,13 @@ docker service scale xml-downloader_xml-api=5
 ```
 
 **Recursos inclusos:**
-- ✅ **SSL/TLS automático** com Let's Encrypt
-- ✅ **Load balancing** inteligente
+- ✅ **Rede overlay interna** para comunicação segura
+- ✅ **Load balancing** automático entre réplicas
 - ✅ **Alta disponibilidade** com failover
 - ✅ **Rolling updates** sem downtime
-- ✅ **Health checks** automáticos
+- ✅ **Descoberta de serviço** nativa do Docker
 
-### ☁️ **Para Startups - Deploy Simples**
+### ☁️ **Para Desenvolvimento - Deploy Simples**
 
 ```bash
 # Deploy rápido com Docker
@@ -238,7 +238,7 @@ docker run -d -p 8000:8000 --name xml-api \
 [![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
 [![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com)
-[![Traefik](https://img.shields.io/badge/Traefik-24A1C1?style=for-the-badge&logo=traefikproxy&logoColor=white)](https://traefik.io)
+[![Docker Swarm](https://img.shields.io/badge/Docker_Swarm-0db7ed?style=for-the-badge&logo=docker&logoColor=white)](https://docs.docker.com/engine/swarm/)
 
 </div>
 
@@ -263,8 +263,8 @@ docker run -d -p 8000:8000 --name xml-api \
 - [🧪 **Testes Automatizados**](test_api.py) - Scripts prontos para validação
 
 ### 🏢 **Para DevOps**
-- [🐳 **Docker Swarm + Traefik**](#deploy-em-produção-com-docker-swarm-e-traefik) - Deploy em produção
-- [⚙️ **Configuração do Traefik**](traefik-setup.md) - Setup completo do reverse proxy
+- [🐳 **Docker Swarm**](#deploy-em-produção) - Deploy em produção para uso interno
+- [⚙️ **Configuração de Rede**](#deploy-em-produção) - Setup de rede overlay
 - [📊 **Monitoramento**](#monitoramento) - Health checks e logs
 
 ### 🎨 **Para Usuários**

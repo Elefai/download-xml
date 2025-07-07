@@ -44,7 +44,8 @@ xml-download-api/
 ├── quick-install.sh         # Instalação via internet 🆕
 ├── demo-install.sh          # Demo de instalação 🆕
 ├── test_api.py             # Script de testes
-├── traefik-setup.md        # Configuração do Traefik
+├── exemplo-uso-interno.yml  # Exemplo de uso em rede Docker 🆕
+├── consumer-example.py      # Exemplo de serviço consumidor 🆕
 ├── EXECUTAR.md             # Instruções detalhadas
 ├── INSTALACAO-AUTOMATICA.md # Guia dos scripts de instalação 🆕
 ├── README_SHOWCASE.md       # Página de vitrine do projeto 🆕
@@ -208,21 +209,17 @@ docker run -d -p 8000:8000 --name xml-api xml-download-api
 docker-compose up -d xml-download-api
 ```
 
-## Deploy em Produção com Docker Swarm e Traefik
+## Deploy em Produção com Docker Swarm
 
-Esta seção descreve como implantar a XML Download API em um ambiente de produção usando Docker Swarm para orquestração de contêineres e Traefik como reverse proxy. Essa configuração oferece benefícios significativos para produção, incluindo escalabilidade horizontal automática, alta disponibilidade com recuperação automática de falhas, balanceamento de carga entre réplicas, e automação completa de certificados SSL/TLS via Let's Encrypt. O Traefik também fornece roteamento dinâmico baseado em domínios e integração transparente com o Docker Swarm para descoberta automática de serviços.
+Esta seção descreve como implantar a XML Download API em um ambiente de produção usando Docker Swarm para orquestração de contêineres. Essa configuração oferece escalabilidade horizontal automática, alta disponibilidade com recuperação automática de falhas, balanceamento de carga entre réplicas e facilita o uso interno em redes Docker.
 
 ### 📋 Pré-requisitos
 
 Antes de prosseguir com o deploy, certifique-se de que você possui:
 
 - **Cluster Docker Swarm ativo**: Um cluster Docker Swarm funcional com pelo menos um nó manager
-- **Domínio configurado**: Um ou mais domínios DNS apontando para o IP público do nó manager do Swarm (ex: `api-xml.seu-dominio.com`)
-- **Traefik implantado**: Traefik v2+ já executando como serviço no cluster, escutando nas portas 80 e 443
-- **Rede overlay externa**: Uma rede overlay externa para comunicação entre Traefik e serviços (ex: `traefik-public`)
+- **Rede overlay**: Uma rede overlay para comunicação interna entre serviços (ex: `api-network`)
 - **Registro de contêineres**: Acesso a um registro Docker (Docker Hub, ECR, etc.) para armazenar a imagem
-
-> 💡 **Precisa configurar o Traefik?** Consulte o arquivo [`traefik-setup.md`](traefik-setup.md) para instruções completas de configuração inicial do Traefik no Docker Swarm.
 
 ### 📝 Arquivo de Stack (docker-stack.yml)
 
@@ -234,12 +231,14 @@ version: '3.8'
 services:
   xml-api:
     image: seu-registro/xml-downloader-api:1.0  # Substitua pela sua imagem
+    ports:
+      - "8000:8000"  # Expor porta para acesso interno
     networks:
-      - traefik-public
+      - api-network
     environment:
       - PYTHONPATH=/app
     deploy:
-      replicas: 1  # Pode ser facilmente escalado: docker service scale stack_xml-api=3
+      replicas: 2  # Pode ser facilmente escalado: docker service scale stack_xml-api=5
       resources:
         limits:
           cpus: '0.5'
@@ -262,37 +261,11 @@ services:
       #   constraints:
       #     - node.role == worker
       #     - node.labels.environment == production
-      labels:
-        # Habilitar Traefik para este serviço
-        - traefik.enable=true
-        - traefik.docker.network=traefik-public
-        
-        # Configuração do Router HTTP (redirecionamento para HTTPS)
-        - traefik.http.routers.xml-api.rule=Host(`api-xml.seu-dominio.com`)
-        - traefik.http.routers.xml-api.entrypoints=web
-        - traefik.http.routers.xml-api.middlewares=xml-api-redirect
-        
-        # Middleware para redirecionamento HTTPS
-        - traefik.http.middlewares.xml-api-redirect.redirectscheme.scheme=https
-        - traefik.http.middlewares.xml-api-redirect.redirectscheme.permanent=true
-        
-        # Configuração do Router HTTPS (principal)
-        - traefik.http.routers.xml-api-secure.rule=Host(`api-xml.seu-dominio.com`)
-        - traefik.http.routers.xml-api-secure.entrypoints=websecure
-        - traefik.http.routers.xml-api-secure.tls=true
-        - traefik.http.routers.xml-api-secure.tls.certresolver=letsencryptresolver
-        
-        # Configuração do Service (porta interna da aplicação)
-        - traefik.http.services.xml-api.loadbalancer.server.port=8000
-        
-        # Health check personalizado (opcional)
-        - traefik.http.services.xml-api.loadbalancer.healthcheck.path=/health
-        - traefik.http.services.xml-api.loadbalancer.healthcheck.interval=30s
-        - traefik.http.services.xml-api.loadbalancer.healthcheck.timeout=10s
 
 networks:
-  traefik-public:
-    external: true
+  api-network:
+    driver: overlay
+    attachable: true
 ```
 
 ### 🚀 Passos para Deploy
@@ -370,16 +343,22 @@ docker service ls | grep xml-api
 Teste se a API está funcionando corretamente:
 
 ```bash
+# Obter IP do nó manager ou usar localhost se estiver local
+NODE_IP=$(docker node inspect self --format '{{.Status.Addr}}')
+
 # Teste do health check
-curl https://api-xml.seu-dominio.com/health
+curl http://$NODE_IP:8000/health
 
 # Teste da documentação
-curl https://api-xml.seu-dominio.com/docs
+curl http://$NODE_IP:8000/docs
 
 # Teste do endpoint principal
-curl -X POST "https://api-xml.seu-dominio.com/api/v1/download_xml" \
+curl -X POST "http://$NODE_IP:8000/api/v1/download_xml" \
      -H "Content-Type: application/json" \
      -d '{"url": "https://www.w3schools.com/xml/note.xml"}'
+
+# Para acesso de outros containers na mesma rede
+curl http://xml-downloader_xml-api:8000/health
 ```
 
 ### 📈 Escalabilidade e Manutenção
@@ -408,14 +387,58 @@ docker service update --image seu-registro/xml-downloader-api:1.1 xml-downloader
 docker stack rm xml-downloader
 ```
 
+### 🌐 Uso em Redes Docker Internas
+
+A API é projetada para uso interno em redes Docker, oferecendo:
+
+- **Service Discovery**: Acesse via nome do serviço `xml-downloader_xml-api:8000`
+- **Rede Overlay**: Comunicação segura entre containers
+- **Load Balancing**: Distribuição automática entre réplicas
+- **Health Checks**: Monitoramento automático de saúde dos containers
+
+#### Exemplo de Uso por Outros Serviços:
+
+```bash
+# De dentro de outro container na mesma rede
+curl http://xml-downloader_xml-api:8000/api/v1/download_xml \
+     -H "Content-Type: application/json" \
+     -d '{"url": "https://exemplo.com/file.xml"}'
+```
+
+#### Docker Compose para Desenvolvimento:
+
+```yaml
+version: '3.8'
+services:
+  xml-api:
+    image: seu-registro/xml-downloader-api:1.0
+    networks:
+      - internal-network
+  
+  seu-app:
+    image: sua-aplicacao:latest
+    environment:
+      - XML_API_URL=http://xml-api:8000
+    networks:
+      - internal-network
+    depends_on:
+      - xml-api
+
+networks:
+  internal-network:
+    driver: bridge
+```
+
+> 💡 **Exemplo completo disponível:** Consulte [`exemplo-uso-interno.yml`](exemplo-uso-interno.yml) e [`consumer-example.py`](consumer-example.py) para ver implementação prática.
+
 ### 🔧 Configurações Avançadas
 
 Para ambientes de produção, considere também:
 
 - **Monitoramento**: Integrar com Prometheus + Grafana
 - **Logs centralizados**: Configurar ELK Stack ou similar
-- **Backup**: Implementar estratégias de backup para dados críticos
-- **Segurança**: Configurar firewalls e políticas de rede adequadas
+- **Redes internas**: Configurar redes overlay para isolamento
+- **Service discovery**: Usar nomes de serviço para comunicação entre containers
 - **CI/CD**: Automatizar o processo de build, test e deploy
 
 ## 📊 Monitoramento
