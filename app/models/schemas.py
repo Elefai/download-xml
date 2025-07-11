@@ -1,5 +1,5 @@
 from pydantic import BaseModel, HttpUrl
-from typing import Optional
+from typing import Optional, List, Dict, Any
 
 class DownloadRequest(BaseModel):
     url: HttpUrl
@@ -20,6 +20,24 @@ class SuccessResponse(BaseModel):
             "example": {
                 "status": "sucesso",
                 "xml_content": "<?xml version='1.0' encoding='UTF-8'?><nota>...</nota>"
+            }
+        }
+
+class XMLInfoResponse(BaseModel):
+    status: str = "sucesso"
+    xml_info: Dict[str, Any]
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "status": "sucesso",
+                "xml_info": {
+                    "root_tag": "nfeProc",
+                    "namespaces": ["http://www.portalfiscal.inf.br/nfe"],
+                    "element_count": 1250,
+                    "max_depth": 8,
+                    "size_bytes": 15728640
+                }
             }
         }
 
