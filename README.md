@@ -6,10 +6,16 @@ Uma API RESTful desenvolvida em Python usando FastAPI para download e validaçã
 
 - **Endpoint único**: `/api/v1/download_xml` para download de XML
 - **Validação robusta**: Verifica se o conteúdo baixado é um XML válido
+- **Rate Limiting**: Proteção contra abuso com limite de requisições por IP
+- **Cache inteligente**: Sistema de cache TTL para melhor performance
+- **Validações de segurança**: Proteção contra URLs maliciosas e XXE attacks
+- **Controle de tamanho**: Limite de tamanho de arquivo configurável
 - **Documentação automática**: Swagger UI e ReDoc gerados automaticamente
 - **Containerização**: Totalmente dockerizado para fácil implantação
 - **Logging**: Sistema de logs para monitoramento e debugging
 - **Tratamento de erros**: Respostas consistentes para diferentes tipos de erro
+- **Testes automatizados**: Suíte completa de testes unitários e de integração
+- **Configuração centralizada**: Configurações via variáveis de ambiente
 
 ## 🚀 Tecnologias Utilizadas
 
@@ -18,7 +24,10 @@ Uma API RESTful desenvolvida em Python usando FastAPI para download e validaçã
 - **Uvicorn**: Servidor ASGI de alta performance
 - **Requests**: Biblioteca para requisições HTTP
 - **Pydantic**: Validação de dados e serialização
+- **SlowAPI**: Rate limiting para proteção contra abuso
+- **CacheTools**: Sistema de cache em memória
 - **Docker**: Containerização da aplicação
+- **Pytest**: Framework de testes automatizados
 
 ## 📁 Estrutura do Projeto
 
@@ -27,28 +36,35 @@ xml-download-api/
 ├── app/
 │   ├── __init__.py
 │   ├── main.py              # Ponto de entrada da aplicação
+│   ├── config.py            # Configurações centralizadas 🆕
 │   ├── models/
 │   │   ├── __init__.py
-│   │   └── schemas.py       # Modelos Pydantic
+│   │   └── schemas.py       # Modelos Pydantic (v2)
 │   ├── routers/
 │   │   ├── __init__.py
-│   │   └── download.py      # Router do endpoint
+│   │   └── download.py      # Router com rate limiting
 │   └── services/
 │       ├── __init__.py
-│       └── xml_service.py   # Lógica de negócio
+│       └── xml_service.py   # Lógica de negócio com cache e segurança
+├── tests/                   # Testes automatizados 🆕
+│   ├── __init__.py
+│   ├── test_api.py         # Testes de integração
+│   ├── test_xml_service.py # Testes unitários
+│   └── test_app.py         # App de teste
 ├── Dockerfile               # Container para a aplicação
 ├── docker-compose.yml       # Execução local/desenvolvimento
 ├── docker-stack.yml         # Deploy em produção (Docker Swarm)
-├── requirements.txt         # Dependências Python
-├── install.sh              # Instalador automático 🆕
-├── quick-install.sh         # Instalação via internet 🆕
-├── demo-install.sh          # Demo de instalação 🆕
+├── requirements.txt         # Dependências Python (atualizadas)
+├── pytest.ini              # Configuração de testes 🆕
+├── install.sh              # Instalador automático
+├── quick-install.sh         # Instalação via internet
+├── demo-install.sh          # Demo de instalação
 ├── test_api.py             # Script de testes
-├── exemplo-uso-interno.yml  # Exemplo de uso em rede Docker 🆕
-├── consumer-example.py      # Exemplo de serviço consumidor 🆕
+├── exemplo-uso-interno.yml  # Exemplo de uso em rede Docker
+├── consumer-example.py      # Exemplo de serviço consumidor
 ├── EXECUTAR.md             # Instruções detalhadas
-├── INSTALACAO-AUTOMATICA.md # Guia dos scripts de instalação 🆕
-├── README_SHOWCASE.md       # Página de vitrine do projeto 🆕
+├── INSTALACAO-AUTOMATICA.md # Guia dos scripts de instalação
+├── README_SHOWCASE.md       # Página de vitrine do projeto
 └── README.md               # Documentação principal
 ```
 
@@ -116,9 +132,9 @@ Após iniciar a aplicação, acesse:
 
 ## 🛠 Uso da API
 
-### Endpoint Principal
+### Endpoints Disponíveis
 
-**POST** `/api/v1/download_xml`
+#### **POST** `/api/v1/download_xml`
 
 **Request Body:**
 ```json
@@ -133,7 +149,10 @@ Após iniciar a aplicação, acesse:
 ```json
 {
   "status": "sucesso",
-  "xml_content": "<?xml version='1.0' encoding='UTF-8'?><nota>...</nota>"
+  "xml_content": "<?xml version='1.0' encoding='UTF-8'?><nota>...</nota>",
+  "cached": false,
+  "content_size": 1024,
+  "timestamp": "2024-01-15T10:30:00"
 }
 ```
 
@@ -153,12 +172,40 @@ Após iniciar a aplicação, acesse:
 }
 ```
 
+**⚠️ Rate Limit (429 Too Many Requests):**
+```json
+{
+  "detail": "Rate limit exceeded: 10 per 1 minute"
+}
+```
+
+#### **GET** `/api/v1/cache/stats`
+
+Endpoint para obter estatísticas do cache da aplicação.
+
+**✅ Sucesso (200 OK):**
+```json
+{
+  "cache_size": 5,
+  "max_cache_size": 100,
+  "ttl_seconds": 900,
+  "cache_info": {
+    "hits": 0,
+    "misses": 0
+  }
+}
+```
+
 ### Exemplo de Uso com cURL
 
 ```bash
+# Download de XML
 curl -X POST "http://localhost:8000/api/v1/download_xml" \
      -H "Content-Type: application/json" \
      -d '{"url": "https://www.exemplo.com.br/arquivo.xml"}'
+
+# Verificar estatísticas do cache
+curl -X GET "http://localhost:8000/api/v1/cache/stats"
 ```
 
 ### Exemplo de Uso com Python
@@ -181,15 +228,28 @@ else:
     print(f"Erro: {result['mensagem']}")
 ```
 
-## 🔍 Validações Implementadas
+## 🔍 Validações e Recursos de Segurança
 
-A API realiza as seguintes validações:
+A API implementa múltiplas camadas de validação e segurança:
 
+### 🛡️ Validações de Segurança
 1. **Validação de URL**: Verifica se a URL é válida usando Pydantic
-2. **Validação de Conteúdo**: Verifica se o conteúdo baixado é um XML válido
-3. **Timeout**: Requisições têm timeout de 30 segundos
-4. **Headers HTTP**: Simula um navegador para evitar bloqueios
-5. **Tratamento de Erros**: Captura e trata diversos tipos de exceções
+2. **Bloqueio de URLs privadas**: Impede acesso a localhost e IPs privados
+3. **Validação de esquema**: Apenas HTTP/HTTPS são permitidos
+4. **Proteção XXE**: Detecta e bloqueia padrões suspeitos em XML
+5. **Controle de tamanho**: Limite de 10MB por arquivo (configurável)
+6. **Rate Limiting**: Máximo de 10 requisições por minuto por IP
+
+### ⚡ Performance e Cache
+1. **Cache TTL**: Cache inteligente de 15 minutos para XMLs válidos
+2. **Download streaming**: Download otimizado com verificação de tamanho
+3. **Headers otimizados**: Headers HTTP otimizados para melhor compatibilidade
+
+### 🔧 Validações Técnicas
+1. **Validação de Conteúdo**: Verifica se o conteúdo baixado é um XML válido
+2. **Timeout configurável**: Requisições têm timeout de 30 segundos (configurável)
+3. **Tratamento de Erros**: Captura e trata diversos tipos de exceções
+4. **Logging estruturado**: Sistema de logs para monitoramento e debugging
 
 ## 🚀 Deploy em Produção
 
@@ -441,12 +501,59 @@ Para ambientes de produção, considere também:
 - **Service discovery**: Usar nomes de serviço para comunicação entre containers
 - **CI/CD**: Automatizar o processo de build, test e deploy
 
+## ⚙️ Configuração
+
+A aplicação pode ser configurada através de variáveis de ambiente:
+
+| Variável | Padrão | Descrição |
+|----------|--------|-----------|
+| `MAX_FILE_SIZE_MB` | `10` | Tamanho máximo do arquivo em MB |
+| `CACHE_TTL_SECONDS` | `900` | Tempo de vida do cache em segundos |
+| `CACHE_MAX_SIZE` | `100` | Número máximo de itens no cache |
+| `HTTP_TIMEOUT_SECONDS` | `30` | Timeout para requisições HTTP |
+| `RATE_LIMIT_DOWNLOADS` | `10/minute` | Limite de rate para downloads |
+| `RATE_LIMIT_STATS` | `30/minute` | Limite de rate para estatísticas |
+| `CORS_ORIGINS` | `*` | Origens permitidas para CORS |
+| `LOG_LEVEL` | `INFO` | Nível de logging |
+
+### Exemplo de uso com variáveis de ambiente:
+
+```bash
+export MAX_FILE_SIZE_MB=20
+export CACHE_TTL_SECONDS=1800
+export RATE_LIMIT_DOWNLOADS="20/minute"
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+## 🧪 Testes
+
+Execute a suíte de testes com:
+
+```bash
+# Instalar dependências de teste
+pip install -r requirements.txt
+
+# Executar todos os testes
+pytest
+
+# Executar testes com cobertura
+pytest --cov=app tests/
+
+# Executar apenas testes unitários
+pytest tests/test_xml_service.py
+
+# Executar apenas testes de integração
+pytest tests/test_api.py
+```
+
 ## 📊 Monitoramento
 
 A aplicação inclui:
 
 - **Health Check**: Endpoint `/health` para verificação de saúde
+- **Cache Stats**: Endpoint `/api/v1/cache/stats` para estatísticas do cache
 - **Logs estruturados**: Sistema de logging para monitoramento
+- **Rate Limiting**: Proteção automática contra abuso
 - **CORS configurado**: Permite requisições de diferentes origens
 
 ## 🤝 Contribuição
